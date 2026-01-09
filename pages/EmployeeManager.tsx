@@ -5,10 +5,11 @@ import { AlertBadge } from '../components/AlertBadge';
 
 interface EmployeeManagerProps {
   employees: Employee[];
-  setEmployees: React.Dispatch<React.SetStateAction<Employee[]>>;
+  onSave: (employee: Employee) => void;
+  onDelete: (id: string) => void;
 }
 
-export const EmployeeManager: React.FC<EmployeeManagerProps> = ({ employees, setEmployees }) => {
+export const EmployeeManager: React.FC<EmployeeManagerProps> = ({ employees, onSave, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
@@ -27,7 +28,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({ employees, set
   const handleOpenModal = (employee?: Employee) => {
     if (employee) {
       setEditingEmployee(employee);
-      setFormData(employee);
+      setFormData(JSON.parse(JSON.stringify(employee))); // Deep copy to avoid reference issues
     } else {
       setEditingEmployee(null);
       setFormData({ name: '', re: '', role: '', department: '', restrictions: '', admissionDate: '', epis: [] });
@@ -35,20 +36,21 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({ employees, set
     setIsModalOpen(true);
   };
 
-  const handleDeleteEmployee = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const handleDeleteEmployee = (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este colaborador?')) {
-      setEmployees(prev => prev.filter(e => e.id !== id));
+      onDelete(id);
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingEmployee) {
-      setEmployees(prev => prev.map(emp => emp.id === editingEmployee.id ? { ...formData, id: emp.id } as Employee : emp));
-    } else {
-      setEmployees(prev => [...prev, { ...formData, id: Date.now().toString() } as Employee]);
-    }
+    
+    const finalEmployee: Employee = {
+      ...(formData as Employee),
+      id: editingEmployee ? editingEmployee.id : Date.now().toString()
+    };
+
+    onSave(finalEmployee);
     setIsModalOpen(false);
   };
 
@@ -81,7 +83,7 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({ employees, set
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Colaboradores & EPIs</h2>
-          <p className="text-slate-500">Gestão de fichas de EPI e restrições médicas</p>
+          <p className="text-slate-500">Gestão de fichas de EPI e restrições médicas (Banco de Dados Ativo)</p>
         </div>
         <button 
           onClick={() => handleOpenModal()}
@@ -122,15 +124,19 @@ export const EmployeeManager: React.FC<EmployeeManagerProps> = ({ employees, set
                 <button 
                   type="button"
                   onClick={() => handleOpenModal(emp)} 
-                  className="text-slate-400 hover:text-blue-600 p-1" 
+                  className="text-slate-400 hover:text-blue-600 p-2 rounded-lg transition-colors" 
                   title="Editar"
                 >
                   <Edit2 size={18} />
                 </button>
                 <button 
                   type="button"
-                  onClick={(e) => handleDeleteEmployee(e, emp.id)} 
-                  className="text-slate-400 hover:text-red-600 p-1" 
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDeleteEmployee(emp.id);
+                  }}
+                  className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors" 
                   title="Excluir"
                 >
                   <Trash2 size={18} />

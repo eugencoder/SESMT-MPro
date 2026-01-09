@@ -39,7 +39,6 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
                     <h1 className="text-2xl font-bold tracking-wider">Controle de EPI's</h1>
                 </div>
                 <h2 className="text-4xl font-bold mb-4 leading-tight">Segurança do Trabalho & Gestão Inteligente</h2>
-                <p className="text-slate-400 text-lg">Gerencie EPIs, exames e conformidade em um único lugar.</p>
             </div>
             
             <p className="text-xs text-slate-600 relative z-10">Desenvolvido por RWeissenberg 2026.</p>

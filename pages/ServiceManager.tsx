@@ -5,10 +5,11 @@ import { AlertBadge } from '../components/AlertBadge';
 
 interface ServiceManagerProps {
   services: Service[];
-  setServices: React.Dispatch<React.SetStateAction<Service[]>>;
+  onSave: (service: Service) => void;
+  onDelete: (id: string) => void;
 }
 
-export const ServiceManager: React.FC<ServiceManagerProps> = ({ services, setServices }) => {
+export const ServiceManager: React.FC<ServiceManagerProps> = ({ services, onSave, onDelete }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Service>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -24,29 +25,22 @@ export const ServiceManager: React.FC<ServiceManagerProps> = ({ services, setSer
     setIsModalOpen(true);
   };
 
-  const handleDelete = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
+  const handleDelete = (id: string) => {
     if (window.confirm('Tem certeza que deseja excluir este serviço?')) {
-      setServices(prev => prev.filter(s => s.id !== id));
+      onDelete(id);
     }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingId) {
-      // Update existing
-      setServices(prev => prev.map(s => s.id === editingId ? { ...formData, id: editingId } as Service : s));
-    } else {
-      // Create new
-      const newService: Service = {
-        ...formData as Service,
-        id: Date.now().toString(),
-        status: 'active'
-      };
-      setServices([...services, newService]);
-    }
-    
+    const finalService: Service = {
+      ...(formData as Service),
+      id: editingId ? editingId : Date.now().toString(),
+      status: 'active'
+    };
+
+    onSave(finalService);
     setIsModalOpen(false);
     setFormData({});
     setEditingId(null);
@@ -57,7 +51,7 @@ export const ServiceManager: React.FC<ServiceManagerProps> = ({ services, setSer
        <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-800">Serviços & Manutenções</h2>
-          <p className="text-slate-500">Controle de validade de treinamentos, laudos e extintores</p>
+          <p className="text-slate-500">Controle de validade de treinamentos, laudos e extintores (Banco de Dados Ativo)</p>
         </div>
         <button 
           onClick={() => handleOpenModal()}
@@ -101,15 +95,19 @@ export const ServiceManager: React.FC<ServiceManagerProps> = ({ services, setSer
                       <button 
                         type="button"
                         onClick={() => handleOpenModal(service)} 
-                        className="text-slate-400 hover:text-blue-600 p-1" 
+                        className="text-slate-400 hover:text-blue-600 p-2 rounded-lg transition-colors" 
                         title="Editar"
                       >
                         <Edit2 size={18} />
                       </button>
                       <button 
                         type="button"
-                        onClick={(e) => handleDelete(e, service.id)} 
-                        className="text-slate-400 hover:text-red-600 p-1" 
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleDelete(service.id);
+                        }} 
+                        className="text-slate-400 hover:text-red-600 p-2 hover:bg-red-50 rounded-lg transition-colors" 
                         title="Excluir"
                       >
                         <Trash2 size={18} />

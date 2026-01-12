@@ -1,27 +1,30 @@
+
 import React, { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './pages/Dashboard';
 import { EmployeeManager } from './pages/EmployeeManager';
 import { ServiceManager } from './pages/ServiceManager';
+import { StockManager } from './pages/StockManager';
 import { Login } from './pages/Login';
-import { Employee, Service } from './types';
+import { Employee, Service, StockItem, StockTransaction } from './types';
 import { StorageService } from './services/storage';
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentPage, setCurrentPage] = useState('dashboard');
   
-  // Centralized State
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [stock, setStock] = useState<StockItem[]>([]);
+  const [transactions, setTransactions] = useState<StockTransaction[]>([]);
 
-  // Initialize Data on Mount
   useEffect(() => {
     StorageService.init();
     setEmployees(StorageService.getEmployees());
     setServices(StorageService.getServices());
+    setStock(StorageService.getStock());
+    setTransactions(StorageService.getTransactions());
 
-    // Check for existing session
     const session = StorageService.getSession();
     if (session) {
       setIsAuthenticated(true);
@@ -39,17 +42,12 @@ const App: React.FC = () => {
     setCurrentPage('dashboard');
   };
 
-  // --- Data Handlers (Sync State + DB) ---
+  // --- Handlers ---
 
   const handleSaveEmployee = (employee: Employee) => {
     setEmployees(prev => {
       const exists = prev.find(e => e.id === employee.id);
-      let newData;
-      if (exists) {
-        newData = prev.map(e => e.id === employee.id ? employee : e);
-      } else {
-        newData = [...prev, employee];
-      }
+      const newData = exists ? prev.map(e => e.id === employee.id ? employee : e) : [...prev, employee];
       StorageService.saveEmployees(newData);
       return newData;
     });
@@ -66,12 +64,7 @@ const App: React.FC = () => {
   const handleSaveService = (service: Service) => {
     setServices(prev => {
       const exists = prev.find(s => s.id === service.id);
-      let newData;
-      if (exists) {
-        newData = prev.map(s => s.id === service.id ? service : s);
-      } else {
-        newData = [...prev, service];
-      }
+      const newData = exists ? prev.map(s => s.id === service.id ? service : s) : [...prev, service];
       StorageService.saveServices(newData);
       return newData;
     });
@@ -85,22 +78,61 @@ const App: React.FC = () => {
     });
   };
 
+  const handleSaveStock = (item: StockItem) => {
+    setStock(prev => {
+      const exists = prev.find(s => s.id === item.id);
+      const newData = exists ? prev.map(s => s.id === item.id ? item : s) : [...prev, item];
+      StorageService.saveStock(newData);
+      return newData;
+    });
+  };
+
+  const handleDeleteStock = (id: string) => {
+    if (window.confirm('Tem certeza que deseja remover este item do inventário?')) {
+      setStock(prev => {
+        const newData = prev.filter(s => s.id !== id);
+        StorageService.saveStock(newData);
+        return newData;
+      });
+    }
+  };
+
+  const handleAddTransaction = (trans: StockTransaction) => {
+    // 1. Save Transaction
+    const newTransactions = [...transactions, trans];
+    setTransactions(newTransactions);
+    StorageService.saveTransactions(newTransactions);
+
+    // 2. Update Stock Quantity
+    setStock(prev => {
+      const newData = prev.map(item => {
+        if (item.id === trans.itemId) {
+          const newQty = trans.type === 'in' 
+            ? item.currentQuantity + trans.quantity 
+            : item.currentQuantity - trans.quantity;
+          return { ...item, currentQuantity: Math.max(0, newQty) };
+        }
+        return item;
+      });
+      StorageService.saveStock(newData);
+      return newData;
+    });
+  };
+
   if (!isAuthenticated) {
-    return <Login onLogin={() => handleLogin('user')} />;
+    return <Login onLogin={(u) => handleLogin(u)} />;
   }
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar Navigation */}
       <Sidebar 
         currentPage={currentPage} 
         onNavigate={setCurrentPage} 
         onLogout={handleLogout} 
       />
 
-      {/* Main Content Area */}
       <main className="flex-1 ml-64 p-8 overflow-y-auto">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[1600px] mx-auto">
           {currentPage === 'dashboard' && (
             <Dashboard employees={employees} services={services} />
           )}
@@ -111,10 +143,19 @@ const App: React.FC = () => {
               onDelete={handleDeleteEmployee}
             />
           )}
+          {currentPage === 'stock' && (
+            <StockManager 
+              stock={stock}
+              transactions={transactions}
+              onSaveStock={handleSaveStock}
+              onDeleteStock={handleDeleteStock}
+              onAddTransaction={handleAddTransaction}
+            />
+          )}
           {currentPage === 'services' && (
             <ServiceManager 
               services={services} 
-              onSave={handleSaveService}
+              onSave={handleSaveService} 
               onDelete={handleDeleteService}
             />
           )}

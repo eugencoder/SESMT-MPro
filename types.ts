@@ -1,3 +1,4 @@
+
 export interface EPI {
   id: string;
   name: string;
@@ -27,6 +28,26 @@ export interface Service {
   description: string;
 }
 
+export interface StockItem {
+  id: string;
+  name: string;
+  category: string;
+  currentQuantity: number;
+  minQuantity: number;
+  unit: string; // ex: 'Par', 'Unidade', 'Conjunto'
+}
+
+export interface StockTransaction {
+  id: string;
+  itemId: string;
+  itemName: string;
+  quantity: number;
+  type: 'in' | 'out';
+  personName: string; // Quem retirou (Colaborador)
+  responsibleName: string; // Quem entregou (TST/Almoxarife)
+  date: string;
+}
+
 export interface User {
   username: string;
   name: string;
@@ -34,3 +55,8 @@ export interface User {
 }
 
 export type AlertLevel = 'normal' | 'warning' | 'critical' | 'info';
+
+export interface AISuggestion {
+  epiName: string;
+  reason: string;
+}

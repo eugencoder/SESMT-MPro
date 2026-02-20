@@ -4,16 +4,15 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { Employee, Service, StockItem } from '../types';
 import { getAlertLevel } from '../components/AlertBadge';
 import { Shield, AlertTriangle, User as UserIcon, CalendarClock, Package, ShieldAlert, ArrowRight } from 'lucide-react';
-import { StorageService } from '../services/storage';
 import { AISafetyAssistant } from '../components/AISafetyAssistant';
 
 interface DashboardProps {
   employees: Employee[];
   services: Service[];
+  stock: StockItem[];
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ employees, services }) => {
-  const stock: StockItem[] = StorageService.getStock();
+export const Dashboard: React.FC<DashboardProps> = ({ employees, services, stock }) => {
   const lowStock = stock.filter(i => i.currentQuantity <= i.minQuantity);
 
   let totalEPIs = 0;
@@ -114,35 +113,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ employees, services }) => 
         </div>
       </div>
 
-      {/* Seção de Alertas de Estoque Crítico */}
+      {/* Seção de Alertas de Estoque Crítico - Atualizada com Scrollbar */}
       {lowStock.length > 0 && (
         <div className="bg-red-50/80 border border-red-200 rounded-[2.5rem] p-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-4 sticky top-0 bg-red-50/10 backdrop-blur-sm py-1 z-10">
             <div className="p-2 bg-red-600 text-white rounded-xl animate-pulse">
               <ShieldAlert size={20} />
             </div>
             <h3 className="text-lg font-black text-red-900">Atenção: Itens em Estoque Crítico</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {lowStock.map(item => (
-              <div key={item.id} className="bg-white border border-red-100 p-4 rounded-2xl flex items-center justify-between group hover:border-red-400 transition-all shadow-sm">
-                <div className="space-y-1">
-                  <p className="font-black text-slate-900 text-sm">{item.name}</p>
-                  <p className="text-[10px] font-bold text-red-600 uppercase">
-                    Qtd: {item.currentQuantity} / Min: {item.minQuantity} {item.unit}s
-                  </p>
-                  <div className="w-32 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
-                    <div 
-                      className="h-full bg-red-500 rounded-full" 
-                      style={{ width: `${Math.min(100, (item.currentQuantity / item.minQuantity) * 100)}%` }}
-                    ></div>
+          
+          <div className="max-h-[320px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-2">
+              {lowStock.map(item => (
+                <div key={item.id} className="bg-white border border-red-100 p-4 rounded-2xl flex items-center justify-between group hover:border-red-400 transition-all shadow-sm">
+                  <div className="space-y-1">
+                    <p className="font-black text-slate-900 text-sm truncate max-w-[200px]">{item.name}</p>
+                    <p className="text-[10px] font-bold text-red-600 uppercase">
+                      Qtd: {item.currentQuantity} / Min: {item.minQuantity} {item.unit}s
+                    </p>
+                    <div className="w-32 h-1.5 bg-slate-100 rounded-full mt-2 overflow-hidden">
+                      <div 
+                        className="h-full bg-red-500 rounded-full" 
+                        style={{ width: `${Math.min(100, (item.currentQuantity / Math.max(1, item.minQuantity)) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="p-2 bg-red-50 text-red-600 rounded-lg group-hover:translate-x-1 transition-transform">
+                    <ArrowRight size={16} />
                   </div>
                 </div>
-                <div className="p-2 bg-red-50 text-red-600 rounded-lg group-hover:translate-x-1 transition-transform">
-                  <ArrowRight size={16} />
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -201,7 +203,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ employees, services }) => 
                 <h3 className="text-xl font-black text-slate-900">Feed de Alertas</h3>
             </div>
             
-            <div className="overflow-y-auto flex-1 pr-2 space-y-4 custom-scrollbar">
+            <div className="max-h-[500px] overflow-y-auto flex-1 pr-2 space-y-4 custom-scrollbar">
                 {upcomingExpirations.length === 0 ? (
                     <div className="text-center py-20">
                         <Shield size={32} className="text-emerald-700 mx-auto mb-4" />

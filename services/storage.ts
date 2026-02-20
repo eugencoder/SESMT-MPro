@@ -1,77 +1,105 @@
 
+import { createClient } from '@supabase/supabase-js';
 import { Employee, Service, StockItem, StockTransaction } from '../types';
-import { INITIAL_EMPLOYEES, INITIAL_SERVICES, INITIAL_STOCK, INITIAL_TRANSACTIONS } from '../constants';
 
-const KEYS = {
-  EMPLOYEES: 'sesmt_db_employees',
-  SERVICES: 'sesmt_db_services',
-  STOCK: 'sesmt_db_stock',
-  TRANSACTIONS: 'sesmt_db_transactions',
-  USER_SESSION: 'sesmt_user_session'
-};
+const SUPABASE_URL = 'https://omfowmjaoyyrpnyqyvbe.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_1UVeaWwQKpn3abx3a_viig_19jx0icW';
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const SESSION_KEY = 'sesmt_user_session';
 
 export const StorageService = {
-  init: () => {
-    if (!localStorage.getItem(KEYS.EMPLOYEES)) {
-      localStorage.setItem(KEYS.EMPLOYEES, JSON.stringify(INITIAL_EMPLOYEES));
+  /**
+   * Testa a conexão com o Supabase buscando um registro simples.
+   */
+  init: async () => {
+    try {
+      const { error } = await supabase.from('employees').select('id').limit(1);
+      if (error) throw error;
+      console.log('✅ Conexão com Supabase estabelecida com sucesso.');
+      return true;
+    } catch (err) {
+      console.error('❌ Falha ao conectar com Supabase. Verifique se as tabelas foram criadas via script SQL.', err);
+      return false;
     }
-    if (!localStorage.getItem(KEYS.SERVICES)) {
-      localStorage.setItem(KEYS.SERVICES, JSON.stringify(INITIAL_SERVICES));
-    }
-    if (!localStorage.getItem(KEYS.STOCK)) {
-      localStorage.setItem(KEYS.STOCK, JSON.stringify(INITIAL_STOCK));
-    }
-    if (!localStorage.getItem(KEYS.TRANSACTIONS)) {
-      localStorage.setItem(KEYS.TRANSACTIONS, JSON.stringify(INITIAL_TRANSACTIONS));
-    }
   },
 
-  getEmployees: (): Employee[] => {
-    const data = localStorage.getItem(KEYS.EMPLOYEES);
-    return data ? JSON.parse(data) : INITIAL_EMPLOYEES;
+  // --- Colaboradores (Tabela: employees) ---
+  getEmployees: async (): Promise<Employee[]> => {
+    const { data, error } = await supabase.from('employees').select('*').order('name');
+    if (error) throw error;
+    return data || [];
   },
 
-  saveEmployees: (employees: Employee[]) => {
-    localStorage.setItem(KEYS.EMPLOYEES, JSON.stringify(employees));
+  saveEmployee: async (employee: Employee) => {
+    // Supabase lida automaticamente com a serialização do array 'epis' para JSONB
+    const { error } = await supabase.from('employees').upsert(employee);
+    if (error) throw error;
   },
 
-  getServices: (): Service[] => {
-    const data = localStorage.getItem(KEYS.SERVICES);
-    return data ? JSON.parse(data) : INITIAL_SERVICES;
+  deleteEmployee: async (id: string) => {
+    const { error } = await supabase.from('employees').delete().eq('id', id);
+    if (error) throw error;
   },
 
-  saveServices: (services: Service[]) => {
-    localStorage.setItem(KEYS.SERVICES, JSON.stringify(services));
+  // --- Serviços (Tabela: services) ---
+  getServices: async (): Promise<Service[]> => {
+    const { data, error } = await supabase.from('services').select('*').order('expiryDate');
+    if (error) throw error;
+    return data || [];
   },
 
-  getStock: (): StockItem[] => {
-    const data = localStorage.getItem(KEYS.STOCK);
-    return data ? JSON.parse(data) : INITIAL_STOCK;
+  saveService: async (service: Service) => {
+    const { error } = await supabase.from('services').upsert(service);
+    if (error) throw error;
   },
 
-  saveStock: (stock: StockItem[]) => {
-    localStorage.setItem(KEYS.STOCK, JSON.stringify(stock));
+  deleteService: async (id: string) => {
+    const { error } = await supabase.from('services').delete().eq('id', id);
+    if (error) throw error;
   },
 
-  getTransactions: (): StockTransaction[] => {
-    const data = localStorage.getItem(KEYS.TRANSACTIONS);
-    return data ? JSON.parse(data) : INITIAL_TRANSACTIONS;
+  // --- Estoque (Tabela: stock) ---
+  getStock: async (): Promise<StockItem[]> => {
+    const { data, error } = await supabase.from('stock').select('*').order('name');
+    if (error) throw error;
+    return data || [];
   },
 
-  saveTransactions: (transactions: StockTransaction[]) => {
-    localStorage.setItem(KEYS.TRANSACTIONS, JSON.stringify(transactions));
+  saveStockItem: async (item: StockItem) => {
+    const { error } = await supabase.from('stock').upsert(item);
+    if (error) throw error;
   },
 
+  deleteStockItem: async (id: string) => {
+    const { error } = await supabase.from('stock').delete().eq('id', id);
+    if (error) throw error;
+  },
+
+  // --- Transações (Tabela: transactions) ---
+  getTransactions: async (): Promise<StockTransaction[]> => {
+    const { data, error } = await supabase.from('transactions').select('*').order('date', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  addTransaction: async (transaction: StockTransaction) => {
+    const { error } = await supabase.from('transactions').insert(transaction);
+    if (error) throw error;
+  },
+
+  // --- Gestão de Sessão (Local) ---
   login: (username: string) => {
-    localStorage.setItem(KEYS.USER_SESSION, JSON.stringify({ username, timestamp: Date.now() }));
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ username, timestamp: Date.now() }));
   },
 
   logout: () => {
-    localStorage.removeItem(KEYS.USER_SESSION);
+    localStorage.removeItem(SESSION_KEY);
   },
 
   getSession: () => {
-    const session = localStorage.getItem(KEYS.USER_SESSION);
+    const session = localStorage.getItem(SESSION_KEY);
     return session ? JSON.parse(session) : null;
   }
 };

@@ -19,6 +19,13 @@ export interface Employee {
   epis: EPI[];
 }
 
+export interface ServiceComment {
+  id: string;
+  text: string;
+  date: string;
+  author: string;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -26,6 +33,8 @@ export interface Service {
   expiryDate: string;
   status: 'active' | 'scheduled' | 'expired';
   description: string;
+  link?: string;
+  comments?: ServiceComment[];
 }
 
 export interface StockItem {
